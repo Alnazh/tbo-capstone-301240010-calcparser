@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}CalcParser - Tokenizer & FSA{% endblock %}
+{% block content %}
+<main class="container py-5 page-content">
+
+  <div class="page-header">
+    <div class="hero-eyebrow">Modul 01</div>
+    <h2>Finite State Automata</h2>
+    <p class="text-secondary" style="max-width:70ch">
+      Finite State Automata (FSA) adalah mesin paling sederhana dalam Teori Bahasa dan Otomata. Bayangkan
+      sebuah mesin dengan beberapa "ruangan" yang disebut <b>state</b>. Mesin itu cuma bisa ingat sedang di
+      ruangan mana saat ini, tidak bisa mengingat apa pun sebelumnya. Setiap kali membaca satu karakter, mesin
+      berpindah ke ruangan lain sesuai aturan yang sudah ditentukan. Di halaman ini, FSA dipakai buat membangun
+      <b>tokenizer</b> (pemecah ekspresi jadi potongan-potongan kecil bermakna, disebut token), persis seperti
+      langkah pertama yang dilakukan compiler sungguhan sebelum kode program dieksekusi.
+    </p>
+  </div>
+
+  <div class="subtab-nav">
+    <button class="subtab-btn active" data-sub="m1a">Tokenizer Kalkulator</button>
+    <button class="subtab-btn" data-sub="m1b">Simulator DFA / NFA Kustom</button>
+    <button class="subtab-btn" data-sub="m1c">Konversi NFA → DFA</button>
+    <button class="subtab-btn" data-sub="m1d">Moore &amp; Mealy Machine <span class="text-dim">(bonus)</span></button>
+  </div>
+
+  <!-- 1A. TOKENIZER -->
+  <div class="subtab-panel active" id="m1a">
+    <div class="cp-card">
+      <div class="cp-card-title">Tokenizer Ekspresi Aritmatika <span class="badge-soft">DFA - maximal munch</span></div>
+      <p class="text-secondary small mb-3">
+        Satu DFA tunggal membaca ekspresi karakter demi karakter. Setiap state akhir ditandai kategori
+        token (NUMBER, PLUS, MINUS, STAR, SLASH, LPAREN, RPAREN). Strategi <em>maximal munch</em> dipakai
+        persis seperti lexer pada compiler sungguhan: ambil kecocokan terpanjang sebelum berhenti, jadi
+        <code>12</code> dibaca sebagai satu token NUMBER, bukan dua token angka "1" dan "2" terpisah.
+      </p>
+      <label class="cp-label">Ekspresi</label>
+      <div class="d-flex gap-2 flex-wrap mb-2">
+        <input id="tokInput" class="cp-input flex-grow-1" style="min-width:220px" value="12 + 3 * (4.5 - 1)">
+        <button class="btn-cp" id="tokRunBtn">Tokenisasi ▸</button>
+      </div>
+      <div id="tokError"></div>
+      <div id="tokResultWrap" style="display:none">
+        <div class="row g-4 mt-1">
+          <div class="col-lg-6">
+            <label class="cp-label">Diagram DFA Lexer</label>
+            <div class="hint-box">Lingkaran bergaris tebal berwarna kuning menandakan state akhir (token
+              terbentuk di situ). Diagram mengalir dari kiri (state <code>S</code>, tempat mulai) ke kanan
+              mengikuti transisinya. Pakai tombol putar di bawah untuk melihat state mana yang dilewati
+              untuk tiap token, satu per satu.</div>
+            <div class="automaton-view" id="tokAutomatonView"></div>
+          </div>
+          <div class="col-lg-6">
+            <label class="cp-label">Token Hasil</label>
+            <div class="token-stream mb-3" id="tokStream"></div>
+            <label class="cp-label">Jejak Transisi per Token</label>
+            <div class="stepper-bar">
+              <button class="btn-icon" id="tokPrev">‹</button>
+              <button class="btn-icon" id="tokPlay">▶</button>
+              <button class="btn-icon" id="tokNext">›</button>
+              <span class="stepper-status" id="tokStepStatus">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1B. CUSTOM FSA -->
+  <div class="subtab-panel" id="m1b">
+    <div class="cp-card">
+      <div class="cp-card-title">Simulator DFA / NFA Kustom</div>
+      <p class="text-secondary small mb-2">Definisikan mesin dengan format teks di bawah, lalu uji sebuah
+        string apakah diterima atau ditolak. Tipe mesin (DFA atau NFA) terdeteksi otomatis dari definisinya:
+        kalau ada satu state yang punya dua tujuan berbeda untuk simbol yang sama, atau ada transisi-ε,
+        berarti itu NFA.</p>
+      <div class="hint-box">
+        Format definisi: baris <code>states</code>, <code>alphabet</code>, <code>start</code>,
+        <code>final</code> diisi daftar dipisah koma. Baris selanjutnya berformat
+        <code>state_asal simbol state_tujuan</code>, satu transisi per baris. Simbol <code>eps</code> berarti
+        transisi-ε (tanpa membaca karakter apa pun).
+      </div>
+      <div class="mb-2">
+        <span class="preset-chip" data-preset="fsa1">Preset: genap jumlah 1 (DFA)</span>
+        <span class="preset-chip" data-preset="fsa2">Preset: berakhiran "ab" (NFA)</span>
+        <span class="preset-chip" data-preset="fsa3">Preset: NFA pola bilangan (ε-transisi)</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <label class="cp-label">Definisi Mesin</label>
+          <textarea id="fsaDef" class="cp-textarea" style="min-height:190px"></textarea>
+        </div>
+        <div class="col-lg-5">
+          <label class="cp-label">String Input</label>
+          <input id="fsaInput" class="cp-input mb-3" value="1101">
+          <button class="btn-cp w-100" id="fsaRunBtn">Jalankan Simulasi ▸</button>
+          <div id="fsaError" class="mt-3"></div>
+          <div id="fsaBanner" class="mt-3"></div>
+        </div>
+      </div>
+      <div id="fsaResultWrap" style="display:none" class="mt-3">
+        <label class="cp-label">Diagram Mesin</label>
+        <div class="automaton-view mb-3" id="fsaAutomatonView"></div>
+        <div class="stepper-bar">
+          <button class="btn-icon" id="fsaPrev">‹</button>
+          <button class="btn-icon" id="fsaPlay">▶</button>
+          <button class="btn-icon" id="fsaNext">›</button>
+          <span class="stepper-status" id="fsaStepStatus">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1C. NFA -> DFA -->
+  <div class="subtab-panel" id="m1c">
+    <div class="cp-card">
+      <div class="cp-card-title">Konversi NFA → DFA <span class="badge-soft">Subset Construction</span></div>
+      <p class="text-secondary small mb-2">
+        NFA boleh "bingung" (dari satu state, satu simbol bisa menuju lebih dari satu state tujuan, bahkan
+        boleh pindah state tanpa membaca apa pun lewat transisi-ε). Komputer tidak suka mesin yang bingung,
+        jadi NFA perlu diubah dulu jadi DFA yang pasti sebelum benar-benar dieksekusi secara efisien. Setiap
+        state DFA hasil konversi sebenarnya adalah <em>himpunan</em> beberapa state NFA sekaligus.
+      </p>
+      <div class="mb-2">
+        <span class="preset-chip" data-preset="nfa1">Preset: NFA mengandung "aa" atau "bb"</span>
+        <span class="preset-chip" data-preset="nfa2">Preset: NFA pola bilangan (ε-transisi)</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <label class="cp-label">Definisi NFA</label>
+          <textarea id="nfaDef" class="cp-textarea" style="min-height:170px"></textarea>
+        </div>
+        <div class="col-lg-5 d-flex flex-column">
+          <label class="cp-label">&nbsp;</label>
+          <button class="btn-cp" id="nfaRunBtn">Konversi ke DFA ▸</button>
+          <div id="nfaError" class="mt-3"></div>
+        </div>
+      </div>
+      <div id="nfaResultWrap" style="display:none" class="mt-3">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <label class="cp-label">NFA Asal</label>
+            <div class="automaton-view" id="nfaOrigView"></div>
+          </div>
+          <div class="col-lg-6">
+            <label class="cp-label">DFA Hasil Konversi</label>
+            <div class="automaton-view" id="nfaDfaView"></div>
+          </div>
+        </div>
+        <label class="cp-label mt-3">Langkah Subset Construction</label>
+        <div class="hint-box">Tiap baris berarti: dari himpunan state DFA di kolom pertama, kalau baca simbol
+          di kolom kedua, gabungan tujuan semua state NFA di dalamnya menghasilkan himpunan baru di kolom
+          ketiga. Himpunan-himpunan inilah yang jadi state pada DFA hasil konversi.</div>
+        <div style="max-height:260px; overflow:auto;">
+          <table class="cp-table" id="nfaStepsTable"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1D. MOORE / MEALY -->
+  <div class="subtab-panel" id="m1d">
+    <div class="hint-box mb-3">Moore dan Mealy Machine adalah FSA yang tidak cuma menerima/menolak string,
+      tapi juga menghasilkan <b>output</b> di sepanjang jalan. Bedanya: Moore menempelkan output pada
+      <b>state</b> (jadi output muncul begitu tiba di satu state), sedangkan Mealy menempelkan output pada
+      <b>transisi</b> (output muncul persis saat berpindah state). Keduanya dipakai kalau kita bukan cuma
+      mau tahu diterima/ditolak, tapi juga ingin mengklasifikasi tiap karakter sepanjang jalan.</div>
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="cp-card h-100">
+          <div class="cp-card-title">Moore Machine <span class="badge-soft">output per state</span></div>
+          <textarea id="moorDef" class="cp-textarea" style="min-height:160px"></textarea>
+          <label class="cp-label mt-2">String Input</label>
+          <input id="moorInput" class="cp-input mb-2" value="0110">
+          <button class="btn-cp" id="moorRunBtn">Simulasikan ▸</button>
+          <div id="moorError" class="mt-2"></div>
+          <div id="moorResult" class="mt-3"></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="cp-card h-100">
+          <div class="cp-card-title">Mealy Machine <span class="badge-soft">output per transisi</span></div>
+          <textarea id="mealDef" class="cp-textarea" style="min-height:160px"></textarea>
+          <label class="cp-label mt-2">String Input</label>
+          <input id="mealInput" class="cp-input mb-2" value="0110">
+          <button class="btn-cp" id="mealRunBtn">Simulasikan ▸</button>
+          <div id="mealError" class="mt-2"></div>
+          <div id="mealResult" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+{% endblock %}
