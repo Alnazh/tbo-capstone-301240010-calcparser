@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}CalcParser - Regular Expression{% endblock %}
+{% block content %}
+<main class="container py-5 page-content">
+
+  <div class="page-header">
+    <div class="hero-eyebrow">Modul 02</div>
+    <h2>Regular Expression</h2>
+    <p class="text-secondary" style="max-width:70ch">
+      Regular Expression (regex) adalah cara ringkas menuliskan pola string, misalnya "satu atau lebih digit,
+      boleh diikuti titik dan digit lagi" cukup ditulis <code>[0-9]+(\.[0-9]+)?</code>. Tapi komputer tidak
+      bisa langsung "membaca" pola seperti itu. Di balik layar, pola itu diterjemahkan dulu jadi automata:
+      langkah pertama membentuk NFA lewat teknik yang disebut <b>Thompson Construction</b>, lalu NFA itu
+      disederhanakan jadi DFA lewat <b>subset construction</b> (teknik yang sama dengan Modul 1). Artinya,
+      regex sebenarnya cuma "kependekan penulisan" dari FSA yang sudah dipelajari sebelumnya.
+    </p>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-card-title">Kompilasi Regular Expression <span class="badge-soft">Thompson NFA -&gt; Subset Construction DFA</span></div>
+    <p class="text-secondary small mb-2">
+      Mendukung: literal, <code>|</code> (union / "atau"), <code>*</code> (nol atau lebih), <code>+</code>
+      (satu atau lebih), <code>?</code> (opsional), grup <code>()</code>, character class <code>[a-z0-9]</code>,
+      shorthand <code>\d</code> (digit), <code>\w</code> (huruf/angka/underscore), <code>\s</code> (spasi).
+      Contoh pola untuk token NUMBER pada tokenizer Modul 1: <code>[0-9]+(\.[0-9]+)?</code>
+    </p>
+    <div class="mb-2">
+      <span class="preset-chip" data-preset="re1">[0-9]+(\.[0-9]+)?</span>
+      <span class="preset-chip" data-preset="re2">(a|b)*abb</span>
+      <span class="preset-chip" data-preset="re3">\d\d?:\d\d</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <input id="reInput" class="cp-input flex-grow-1" style="min-width:220px" value="[0-9]+(\.[0-9]+)?">
+      <button class="btn-cp" id="reCompileBtn">Compile ▸</button>
+    </div>
+    <div id="reError" class="mt-3"></div>
+  </div>
+
+  <div id="reResultWrap" style="display:none">
+    <div class="hint-box">NFA di kiri adalah hasil langsung dari Thompson Construction, satu simpul untuk
+      tiap operator dalam pola (makanya jumlah state-nya cenderung banyak dan transisi-nya banyak memakai
+      &epsilon;, yaitu transisi tanpa membaca karakter). DFA di kanan adalah bentuk yang sudah disederhanakan
+      lewat subset construction, lebih sedikit state-nya, dan inilah yang dipakai untuk pengujian string di
+      bagian bawah.</div>
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="cp-card h-100">
+          <div class="cp-card-title">NFA (Thompson Construction)</div>
+          <div class="automaton-view" id="reNfaView"></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="cp-card h-100">
+          <div class="cp-card-title">DFA (Subset Construction)</div>
+          <div class="automaton-view" id="reDfaView"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cp-card">
+      <div class="cp-card-title">Tata Bahasa Reguler Ekuivalen <span class="badge-soft">Linear Kanan</span></div>
+      <p class="text-secondary small mb-2">Setiap DFA punya grammar reguler (linear kanan) yang persis
+        setara dengannya, satu nonterminal per state. Ini membuktikan langsung bahwa regex, DFA, dan grammar
+        reguler adalah tiga wajah dari satu konsep yang sama (semuanya Tipe 3 pada Hierarki Chomsky).</p>
+      <div class="grammar-block" id="reGrammarBlock"></div>
+    </div>
+    <div class="cp-card">
+      <div class="cp-card-title">Uji Pencocokan String</div>
+      <div class="d-flex gap-2 flex-wrap mb-2">
+        <input id="reTestInput" class="cp-input flex-grow-1" style="min-width:200px" value="12.5">
+        <button class="btn-cp" id="reTestBtn">Uji ▸</button>
+      </div>
+      <div id="reTestBanner"></div>
+      <div id="reTestStepWrap" style="display:none" class="mt-3">
+        <div class="automaton-view mb-3" id="reTestDfaView"></div>
+        <div class="stepper-bar">
+          <button class="btn-icon" id="rePrev">‹</button>
+          <button class="btn-icon" id="rePlay">▶</button>
+          <button class="btn-icon" id="reNext">›</button>
+          <span class="stepper-status" id="reStepStatus">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+{% endblock %}
