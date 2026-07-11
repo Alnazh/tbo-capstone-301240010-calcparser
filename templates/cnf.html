@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}CalcParser - Hierarki Chomsky & CNF{% endblock %}
+{% block content %}
+<main class="container py-5 page-content">
+
+  <div class="page-header">
+    <div class="hero-eyebrow">Modul 04</div>
+    <h2>Hierarki Chomsky &amp; Chomsky Normal Form</h2>
+    <p class="text-secondary" style="max-width:70ch">
+      Sejauh ini sudah dipakai dua "level" bahasa formal: bahasa reguler (Modul 1 &amp; 2, dikenali FSA) dan
+      bahasa bebas konteks (Modul 3, dikenali PDA). Noam Chomsky mengurutkan semua bahasa formal jadi empat
+      tingkat berdasarkan seberapa ketat aturan produksinya, dari yang paling longgar (Tipe 0) sampai paling
+      ketat (Tipe 3). Di halaman ini, grammar bebas konteks (Tipe 2) diubah ke <b>Chomsky Normal Form
+      (CNF)</b>, sebuah format baku di mana setiap aturan produksi cuma boleh berbentuk dua pola tertentu.
+      Kenapa direpotkan menyeragamkan bentuknya? Karena algoritma pengenal bahasa seperti CYK (dipakai di
+      Modul 3) cuma bisa jalan kalau grammar-nya sudah dalam bentuk CNF.
+    </p>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-card-title">Hierarki Chomsky</div>
+    <div class="table-responsive">
+      <table class="cp-table chomsky-table">
+        <thead><tr><th>Tipe</th><th>Nama</th><th>Mesin Pengenal</th><th>Contoh pada CalcParser</th></tr></thead>
+        <tbody>
+          <tr><td>Tipe 0</td><td>Unrestricted Grammar</td><td>Mesin Turing</td><td class="text-dim">tidak dipakai secara eksplisit</td></tr>
+          <tr><td>Tipe 1</td><td>Context-Sensitive Grammar</td><td>Linear Bounded Automaton</td><td class="text-dim">tidak dipakai secara eksplisit</td></tr>
+          <tr><td>Tipe 2</td><td>Context-Free Grammar</td><td>Pushdown Automaton</td><td>Grammar ekspresi aritmatika (Modul 3)</td></tr>
+          <tr><td>Tipe 3</td><td>Regular Grammar</td><td>Finite State Automaton</td><td>Tokenizer &amp; Regex (Modul 1 &amp; 2)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-secondary small mb-0">
+      Setiap tipe bahasa yang lebih tinggi (angka lebih kecil) mencakup seluruh bahasa di tipe bawahnya
+      (Tipe 3 ⊂ Tipe 2 ⊂ Tipe 1 ⊂ Tipe 0), artinya semua yang bisa dikenali FSA pasti juga bisa dikenali PDA,
+      tapi tidak sebaliknya. CalcParser mendemonstrasikan hubungan Tipe 3 dan Tipe 2 secara langsung: token
+      dari lexer (Tipe 3) menjadi terminal bagi grammar ekspresi (Tipe 2).
+    </p>
+  </div>
+
+  <div class="cp-card">
+    <div class="cp-card-title">Konversi CFG Sembarang → Chomsky Normal Form</div>
+    <div class="hint-box">
+      Sebuah grammar dikatakan CNF kalau setiap aturannya berbentuk <code>A → BC</code> (dua nonterminal) atau
+      <code>A → a</code> (satu terminal), dengan pengecualian <code>S → ε</code> untuk simbol awal saja.
+      Konversi dilakukan lima langkah berurutan: <b>START</b> (tambah simbol awal baru), <b>DEL</b> (hilangkan
+      produksi kosong/ε), <b>UNIT</b> (hilangkan produksi tunggal <code>A → B</code>), hilangkan simbol yang
+      tidak berguna, lalu <b>TERM+BIN</b> (pastikan tiap aturan cuma dua simbol).
+    </div>
+    <div class="mb-2">
+      <span class="preset-chip" data-preset="cnf1">Grammar Aritmatika</span>
+      <span class="preset-chip" data-preset="cnf2">aⁿbⁿ</span>
+      <span class="preset-chip" data-preset="cnf3">Grammar dengan produksi-ε</span>
+    </div>
+    <textarea id="cnfDef" class="cp-textarea" style="min-height:140px"></textarea>
+    <button class="btn-cp mt-2" id="cnfRunBtn">Konversi ke CNF ▸</button>
+    <div id="cnfError" class="mt-3"></div>
+  </div>
+
+  <div id="cnfResultWrap" style="display:none">
+    <div class="cp-card">
+      <div class="cp-card-title">Langkah Transformasi</div>
+      <p class="text-secondary small mb-2">Perhatikan bagaimana grammar berubah bentuk sedikit demi sedikit
+        di tiap langkah. Ini bagian yang paling penting buat dipahami dan dijelaskan, karena menunjukkan
+        proses konversinya, bukan cuma hasil akhirnya.</p>
+      <div id="cnfStepsWrap"></div>
+    </div>
+    <div class="cp-card">
+      <div class="cp-card-title">Bentuk Normal Chomsky (Hasil Akhir)</div>
+      <div class="grammar-block" id="cnfFinalBlock"></div>
+    </div>
+    <div class="cp-card">
+      <div class="cp-card-title">Greibach Normal Form <span class="badge-soft">bonus</span></div>
+      <p class="text-secondary small mb-2">GNF mewajibkan setiap aturan produksi diawali tepat satu terminal,
+        diikuti nol atau lebih nonterminal. Konversi ini jauh lebih rumit daripada CNF (grammar bisa
+        "meledak" jadi banyak aturan baru), jadi fitur ini bersifat eksperimental: kalau gagal, akan
+        ditampilkan pesan yang jujur, bukan hasil yang salah.</p>
+      <div id="gnfWrap"></div>
+    </div>
+  </div>
+
+</main>
+{% endblock %}
