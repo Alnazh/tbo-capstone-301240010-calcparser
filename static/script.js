@@ -1,10 +1,5 @@
-/*
-  CalcParser - script.js
-  Semua logika sisi klien ada di sini: pindah tab, panggil API Flask, dan
-  gambar ulang visualisasi (diagram automata, pohon penurunan, tabel CYK).
-  Sengaja ditulis polos pakai vanilla JS, tanpa framework, biar gampang
-  ditelusuri satu per satu waktu presentasi atau demo video.
-*/
+/* CalcParser - script.js: panggil API Flask, gambar diagram/pohon/tabel.
+   Vanilla JS tanpa framework, biar gampang ditelusuri saat presentasi. */
 
 const $ = (id) => document.getElementById(id);
 const EPS = "ε";
@@ -31,6 +26,64 @@ function errorBox(el, message) {
   el.innerHTML = `<div class="error-box">⚠ ${escapeHtml(message)}</div>`;
 }
 
+// Menerjemahkan hasil simulasi FSA jadi kalimat "kenapa diterima/ditolak".
+function explainFsaTrace(trace, accepted, finalStates) {
+  const last = trace[trace.length - 1];
+  if (last.states.length === 0 && last.symbol !== null) {
+    return `✕ Ditolak: mesin macet membaca simbol '${escapeHtml(last.symbol)}' pada langkah ke-${last.step}, ` +
+      `karena dari kumpulan state sebelumnya tidak ada transisi untuk simbol itu.`;
+  }
+  const setTxt = `{${finalStates.join(", ") || "∅"}}`;
+  if (accepted) {
+    return `✓ Diterima: setelah seluruh input dibaca, mesin berhenti di state ${setTxt}, dan salah satunya adalah state akhir (final).`;
+  }
+  return `✕ Ditolak: setelah seluruh input dibaca, mesin berhenti di state ${setTxt}, tidak satu pun state akhir (final).`;
+}
+
+// Menerjemahkan pola regex jadi kalimat berbahasa manusia, rekursif untuk grup dalam kurung.
+function humanizeRegex(pattern) {
+  function quant(q) {
+    return q === "*" ? "nol atau lebih " : q === "+" ? "satu atau lebih " : q === "?" ? "opsional (boleh tidak ada) " : "";
+  }
+  function walk(str) {
+    const parts = [];
+    let i = 0;
+    while (i < str.length) {
+      const c = str[i];
+      let label;
+      if (c === "(") {
+        let depth = 1, j = i + 1;
+        while (j < str.length && depth > 0) { if (str[j] === "(") depth++; else if (str[j] === ")") depth--; j++; }
+        label = `(${walk(str.slice(i + 1, j - 1))})`;
+        i = j;
+      } else if (c === "[") {
+        let j = str.indexOf("]", i);
+        if (j === -1) j = str.length;
+        label = `salah satu dari [${str.slice(i + 1, j)}]`;
+        i = j + 1;
+      } else if (c === "\\") {
+        const map = { d: "satu digit", w: "satu huruf/angka/underscore", s: "satu spasi" };
+        label = map[str[i + 1]] || `karakter '${str[i + 1]}'`;
+        i += 2;
+      } else if (c === "|") {
+        parts.push("||"); i += 1; continue;
+      } else {
+        label = `'${c}'`; i += 1;
+      }
+      let q = "";
+      if (str[i] === "*" || str[i] === "+" || str[i] === "?") { q = str[i]; i += 1; }
+      parts.push(q ? `${quant(q)}${label}` : label);
+    }
+    let res = "";
+    parts.forEach((p, idx) => {
+      if (p === "||") { res += " ATAU "; }
+      else { res += (idx > 0 && parts[idx - 1] !== "||" ? ", diikuti " : "") + p; }
+    });
+    return res;
+  }
+  return escapeHtml(walk(pattern));
+}
+
 // --- Navigasi sub-tab (dipakai di halaman Tokenizer & Parser, yang punya
 // beberapa alat berbeda dalam satu halaman) ----------------------------------
 document.querySelectorAll(".subtab-nav").forEach((nav) => {
@@ -45,8 +98,8 @@ document.querySelectorAll(".subtab-nav").forEach((nav) => {
   });
 });
 
-// Diagram automata (SVG, tata letak berjenjang).
-// Kolom tiap state = jarak BFS dari state awal, biar posisi ikut struktur graf.
+// Diagram automata: layout berjenjang (kolom = jarak BFS dari state awal).
+// Lebih stabil daripada layout melingkar untuk mesin dengan banyak state.
 
 const AUTOMATON_MAX_NODES = 26; // di atas ini, tampilkan tabel transisi saja
 
@@ -102,8 +155,7 @@ function computeLayeredLayout(automaton) {
   return { nodeR, width, height, pos, rank };
 }
 
-// Simbol satu karakter yang berurutan disingkat jadi rentang (mis. "0-9")
-// supaya label transisi tidak panjang dan menabrak node lain.
+// Simbol satu karakter berurutan (mis. digit 0-9) disingkat jadi rentang "0-9".
 function compressSymbols(symbols) {
   if (symbols.length <= 2 || !symbols.every((s) => s.length === 1)) {
     return symbols.length > 6 ? symbols.slice(0, 6).join(",") + ",.." : symbols.join(",");
@@ -161,12 +213,11 @@ function buildAutomatonSVG(automaton, idSuffix) {
       const ux = dx / dist, uy = dy / dist;
       const sx = p1.x + ux * nodeR, sy = p1.y + uy * nodeR;
       const ex = p2.x - ux * nodeR, ey = p2.y - uy * nodeR;
-      // Makin jauh lompatan kolomnya, makin besar lengkungan garisnya.
+      // lengkungan makin besar untuk state yang lompat kolom jauh, biar tidak lewat node lain
       const rankDist = Math.abs((rank[g.from] ?? 0) - (rank[g.to] ?? 0));
       const baseOffset = hasReverse ? 26 : 18;
       const offset = baseOffset + Math.max(0, rankDist - 1) * 22;
-      // Arah lengkung diselang-seling berdasarkan rank asal, kecuali
-      // pasangan bolak-balik yang arahnya sudah otomatis berlawanan.
+      // arah lengkung diselang-seling per rank, kecuali pasangan edge bolak-balik
       const sign = hasReverse ? 1 : ((rank[g.from] ?? 0) % 2 === 0 ? 1 : -1);
       const nx = (-dy / dist) * sign, ny = (dx / dist) * sign;
       const mx = (sx + ex) / 2 + nx * offset, my = (sy + ey) / 2 + ny * offset;
@@ -196,8 +247,7 @@ function buildAutomatonSVG(automaton, idSuffix) {
     parts.push(`<text class="fa-edge-label" x="${sx - 6}" y="${sy - 8}" style="text-anchor:end;">mulai</text>`);
   }
 
-  // width/height eksplisit (bukan cuma viewBox) agar otomata kecil
-  // tidak dipaksa melar; CSS hanya boleh menyusutkan lewat max-width.
+  // width/height eksplisit mencegah otomata kecil dipaksa melar mengisi kartu.
   return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}</svg>`;
 }
 
@@ -264,8 +314,7 @@ function attachStepper({ prevBtn, nextBtn, playBtn, statusEl }, total, onIndex, 
   return { goTo(i) { stop(); idx = i; update(); } };
 }
 
-// Pohon penurunan digambar sebagai SVG asli (bukan trik CSS ul/li).
-// Daun berurutan kiri-ke-kanan; induk di tengah rata-rata posisi anaknya.
+// Pohon penurunan sebagai SVG: daun berurutan kiri-kanan, induk di tengah anak-anaknya.
 function computeTreeLayout(root) {
   const nodeW = 30, leafGap = 26, levelH = 64;
   let leafCounter = 0;
@@ -450,6 +499,7 @@ q0 0 q0 GENAP
 q0 1 q1 GANJIL
 q1 0 q1 GANJIL
 q1 1 q0 GENAP`,
+  re0: "ab*",
   re1: "[0-9]+(\\.[0-9]+)?",
   re2: "(a|b)*abb",
   re3: "\\d\\d?:\\d\\d",
@@ -470,7 +520,7 @@ document.querySelectorAll(".preset-chip").forEach((chip) => {
     const targetMap = {
       fsa1: "fsaDef", fsa2: "fsaDef", fsa3: "fsaDef",
       nfa1: "nfaDef", nfa2: "nfaDef",
-      re1: "reInput", re2: "reInput", re3: "reInput",
+      re0: "reInput", re1: "reInput", re2: "reInput", re3: "reInput",
       cfgb1: "cfgbDef", cfgb2: "cfgbDef", cfgb3: "cfgbDef", cfgb4: "cfgbDef",
       cnf1: "cnfDef", cnf2: "cnfDef", cnf3: "cnfDef",
     };
@@ -511,6 +561,10 @@ async function runTokenizer() {
     } else {
       $("tokStepStatus").textContent = "-";
     }
+    const errs = data.tokens.filter((t) => t.type === "ERROR");
+    $("tokExplain").innerHTML = errs.length
+      ? `⚠ ${errs.length} karakter tidak dikenali (${errs.map((t) => `'${escapeHtml(t.lexeme)}'`).join(", ")}): dari state saat itu tidak ada transisi DFA yang cocok.`
+      : `✓ Semua ${data.tokens.length} token dikenali. Tiap token berhenti tepat sebelum karakter berikutnya tidak lagi punya transisi valid dari state akhir yang sudah dicapai (maximal munch).`;
   } catch (e) {
     errorBox($("tokError"), e.message);
     $("tokResultWrap").style.display = "none";
@@ -532,6 +586,7 @@ async function runCustomFSA() {
     $("fsaBanner").innerHTML = `<div class="result-banner ${data.accepted ? "ok" : "bad"}">
       ${data.accepted ? "✓ DITERIMA" : "✕ DITOLAK"} oleh mesin (${data.automaton.type})
       <span class="value">state akhir: ${data.final_states.join(", ") || "∅"}</span></div>`;
+    $("fsaExplain").innerHTML = explainFsaTrace(data.trace, data.accepted, data.final_states);
     attachStepper(
       { prevBtn: $("fsaPrev"), nextBtn: $("fsaNext"), playBtn: $("fsaPlay"), statusEl: $("fsaStepStatus") },
       data.trace.length,
@@ -609,6 +664,7 @@ async function compileRegexHandler() {
     renderAutomaton($("reNfaView"), data.nfa);
     renderAutomaton($("reDfaView"), data.dfa);
     $("reGrammarBlock").textContent = data.grammar.join("\n");
+    $("reHumanExplain").innerHTML = `Pola <code>${escapeHtml(pattern)}</code> berarti: ${humanizeRegex(pattern)}.`;
   } catch (e) {
     errorBox($("reError"), e.message);
     $("reResultWrap").style.display = "none";
@@ -621,6 +677,7 @@ async function testRegexHandler() {
     $("reTestBanner").innerHTML = `<div class="result-banner ${data.accepted ? "ok" : "bad"}">
       ${data.accepted ? "✓ COCOK dengan pola" : "✕ TIDAK COCOK"}
       <span class="value">state akhir: ${data.final_states.join(", ") || "∅"}</span></div>`;
+    $("reTestExplain").innerHTML = explainFsaTrace(data.trace, data.accepted, data.final_states);
     $("reTestStepWrap").style.display = "block";
     const view = renderAutomaton($("reTestDfaView"), data.dfa);
     attachStepper(
@@ -648,6 +705,8 @@ async function runArithmeticParse() {
     arData = data;
     $("arResultWrap").style.display = "block";
     $("arValue").textContent = data.value !== null && data.value !== undefined ? `= ${data.value}` : "";
+    $("arExplain").innerHTML = `✓ Diterima: seluruh token habis terpakai membentuk satu pohon penurunan ` +
+      `dari simbol awal <code>E</code> tanpa sisa, mengikuti aturan grammar di atas.`;
     renderTree($("arTreeView"), data.tree);
     renderDerivations($("arDerivWrap"), arShowRight ? data.rightmost : data.leftmost);
     $("arDerivToggle").textContent = "tampilkan: " + (arShowRight ? "kiri" : "kanan");
@@ -679,6 +738,11 @@ async function runGenericCFG() {
     renderCykTable($("cfgbCykTable"), data.cyk_table, data.terminal_seq);
     $("cfgbBanner").innerHTML = `<div class="result-banner ${data.accepted ? "ok" : "bad"}">
       ${data.accepted ? "✓ STRING DITERIMA" : "✕ STRING DITOLAK"} oleh grammar</div>`;
+    $("cfgbExplain").innerHTML = data.accepted
+      ? `✓ Diterima: simbol awal grammar (dalam bentuk CNF) muncul di sel tabel CYK paling atas ` +
+        `(l = panjang penuh, i = 0), artinya seluruh string bisa diturunkan dari simbol awal.`
+      : `✕ Ditolak: simbol awal grammar tidak muncul di sel tabel CYK paling atas, artinya tidak ada ` +
+        `cara menurunkan seluruh string ini dari simbol awal memakai aturan produksi yang ada.`;
     if (data.accepted) {
       $("cfgbTreeDerivWrap").style.display = "flex";
       $("cfgbPdaWrap").style.display = "block";
@@ -758,8 +822,8 @@ async function runHeroPipeline() {
 }
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-// INISIALISASI PER HALAMAN: tiap modul punya wiring sendiri, dipanggil
-// sesuai atribut data-page di <body> agar tidak menyentuh elemen yang tak ada.
+// INISIALISASI PER HALAMAN
+// Tiap halaman punya elemen berbeda, jadi wiring dibungkus per fungsi lalu dipanggil sesuai data-page.
 
 function initHomePage() {
   $("heroRunBtn").addEventListener("click", runHeroPipeline);
