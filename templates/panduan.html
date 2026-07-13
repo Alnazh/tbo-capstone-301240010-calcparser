@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Otomatika - Panduan Istilah{% endblock %}
+{% block content %}
+<main class="container py-5 page-content">
+
+  <div class="page-header">
+    <div class="hero-eyebrow">Panduan</div>
+    <h2>Daftar Istilah &amp; Nama State</h2>
+    <p class="text-secondary" style="max-width:70ch">
+      Halaman ini menjelaskan singkatan nama state yang muncul di diagram Modul 1 (NUM, NUMDOT, LPAREN,
+      dan seterusnya) serta istilah umum teori otomata yang dipakai di seluruh aplikasi.
+    </p>
+  </div>
+
+  <div class="cp-card mb-4">
+    <div class="cp-card-title">State DFA Tokenizer (Modul 01)</div>
+    <p class="text-secondary small mb-2">Ini nama-nama state pada DFA lexer di halaman Tokenizer, dari
+      diagram "Simulator DFA/NFA Kustom" dan "Tokenizer Kalkulator".</p>
+    <table class="cp-table">
+      <thead><tr><th>State</th><th>Kepanjangan</th><th>Arti</th></tr></thead>
+      <tbody>
+        <tr><td>S</td><td>Start</td><td>State awal, belum membaca karakter apa pun.</td></tr>
+        <tr><td>NUM</td><td>Number</td><td>Sedang/sudah membaca deretan digit bulat, mis. "12".</td></tr>
+        <tr><td>NUMDOT</td><td>Number + Dot</td><td>Baru saja membaca titik desimal setelah digit, mis. "12.", belum final karena harus diikuti digit lagi.</td></tr>
+        <tr><td>NUMFRAC</td><td>Number Fraction</td><td>Sedang membaca digit pecahan setelah titik, mis. "12.5", token NUMBER lengkap.</td></tr>
+        <tr><td>PLUS</td><td>Plus</td><td>Token operator "+".</td></tr>
+        <tr><td>MINUS</td><td>Minus</td><td>Token operator "-".</td></tr>
+        <tr><td>STAR</td><td>Star</td><td>Token operator "*".</td></tr>
+        <tr><td>SLASH</td><td>Slash</td><td>Token operator "/".</td></tr>
+        <tr><td>LPAREN</td><td>Left Parenthesis</td><td>Token kurung buka "(".</td></tr>
+        <tr><td>RPAREN</td><td>Right Parenthesis</td><td>Token kurung tutup ")".</td></tr>
+        <tr><td>WS</td><td>Whitespace</td><td>Spasi, dibuang dan tidak jadi token, cuma dipakai memisah token lain.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cp-card mb-4">
+    <div class="cp-card-title">Istilah Umum Teori Otomata</div>
+    <table class="cp-table">
+      <thead><tr><th>Istilah</th><th>Arti</th></tr></thead>
+      <tbody>
+        <tr><td>DFA</td><td>Deterministic Finite Automaton: dari satu state dan satu simbol, tujuannya selalu tepat satu state.</td></tr>
+        <tr><td>NFA</td><td>Nondeterministic Finite Automaton: dari satu state dan satu simbol, tujuannya boleh lebih dari satu state, atau nol.</td></tr>
+        <tr><td>ε (epsilon)</td><td>Transisi tanpa membaca karakter apa pun, cuma berpindah state secara "gratis".</td></tr>
+        <tr><td>Subset Construction</td><td>Algoritma mengubah NFA jadi DFA: satu state DFA mewakili satu himpunan state NFA yang aktif bersamaan.</td></tr>
+        <tr><td>Thompson Construction</td><td>Algoritma mengubah pola regex jadi NFA, satu simpul untuk tiap operator dalam pola.</td></tr>
+        <tr><td>Maximal Munch</td><td>Strategi lexer: ambil kecocokan token terpanjang yang mungkin, bukan berhenti di kecocokan pertama.</td></tr>
+        <tr><td>PDA</td><td>Pushdown Automaton: mesin state ditambah stack, dipakai mengenali bahasa bebas konteks.</td></tr>
+        <tr><td>CFG</td><td>Context-Free Grammar: aturan produksi bentuk "satu nonterminal → deretan simbol".</td></tr>
+        <tr><td>CNF</td><td>Chomsky Normal Form: bentuk baku CFG, tiap aturan cuma "A → B C" atau "A → a".</td></tr>
+        <tr><td>GNF</td><td>Greibach Normal Form: bentuk baku CFG, tiap aturan diawali tepat satu terminal.</td></tr>
+        <tr><td>CYK</td><td>Cocke-Younger-Kasami: algoritma pengecekan keanggotaan string pada grammar CNF lewat tabel.</td></tr>
+        <tr><td>Derivasi (leftmost/rightmost)</td><td>Urutan penerapan aturan produksi dari simbol awal sampai jadi string, dimulai dari nonterminal paling kiri atau paling kanan.</td></tr>
+        <tr><td>Parse Tree</td><td>Pohon yang menggambarkan bagaimana grammar menurunkan sebuah string.</td></tr>
+        <tr><td>State Akhir (Final)</td><td>State di himpunan F, kalau mesin berhenti di sini setelah membaca semua input, string diterima. Boleh lebih dari satu.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+{% endblock %}

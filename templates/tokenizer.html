@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CalcParser - Tokenizer & FSA{% endblock %}
+{% block title %}Otomatika - Tokenizer & FSA{% endblock %}
 {% block content %}
 <main class="container py-5 page-content">
 
@@ -20,7 +20,7 @@
     <button class="subtab-btn active" data-sub="m1a">Tokenizer Kalkulator</button>
     <button class="subtab-btn" data-sub="m1b">Simulator DFA / NFA Kustom</button>
     <button class="subtab-btn" data-sub="m1c">Konversi NFA → DFA</button>
-    <button class="subtab-btn" data-sub="m1d">Moore &amp; Mealy Machine <span class="text-dim">(bonus)</span></button>
+    <button class="subtab-btn" data-sub="m1d">Moore &amp; Mealy Machine</button>
   </div>
 
   <!-- 1A. TOKENIZER -->
@@ -32,6 +32,7 @@
         token (NUMBER, PLUS, MINUS, STAR, SLASH, LPAREN, RPAREN). Strategi <em>maximal munch</em> dipakai
         persis seperti lexer pada compiler sungguhan: ambil kecocokan terpanjang sebelum berhenti, jadi
         <code>12</code> dibaca sebagai satu token NUMBER, bukan dua token angka "1" dan "2" terpisah.
+        Nama state seperti NUMDOT/LPAREN dijelaskan di <a href="{{ url_for('panduan_page') }}">halaman Panduan</a>.
       </p>
       <label class="cp-label">Ekspresi</label>
       <div class="d-flex gap-2 flex-wrap mb-2">
@@ -59,6 +60,8 @@
               <button class="btn-icon" id="tokNext">›</button>
               <span class="stepper-status" id="tokStepStatus">-</span>
             </div>
+            <label class="cp-label mt-3">Kenapa Hasilnya Begitu?</label>
+            <div id="tokExplain" class="explain-box"></div>
           </div>
         </div>
       </div>
@@ -106,6 +109,7 @@
           <button class="btn-icon" id="fsaNext">›</button>
           <span class="stepper-status" id="fsaStepStatus">-</span>
         </div>
+        <div id="fsaExplain" class="explain-box mt-2"></div>
       </div>
     </div>
   </div>
