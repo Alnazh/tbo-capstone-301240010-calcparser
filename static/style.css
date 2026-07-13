@@ -1,4 +1,4 @@
-/* Tema visual: kertas gambar teknik (blueprint) navy + garis sirkuit, menyesuaikan topik automata. */
+/* Otomatika - tema blueprint navy dengan garis sirkuit, menyesuaikan tema automata/mesin. */
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -33,6 +33,9 @@
 
 *{ box-sizing: border-box; }
 
+.row{ min-width: 0; }
+.row > [class*="col-"]{ min-width: 0; }
+
 html, body{
   background: var(--bg);
   color: var(--text-primary);
@@ -64,7 +67,7 @@ h1, h2, h3, h4, h5, .font-display{
 .text-secondary{ color: var(--text-secondary); }
 .text-accent{ color: var(--accent); }
 
-/* Corner-tick frame: motif "lembar gambar teknik" dipakai berulang. */
+/* Corner-tick frame: motif "lembar gambar teknik", dipakai berulang. */
 .blueprint-frame{
   position: relative;
   background: var(--bg-panel);
@@ -99,10 +102,9 @@ h1, h2, h3, h4, h5, .font-display{
   color: var(--text-primary) !important;
   display: flex; align-items: center; gap: .55rem;
 }
-.cp-brand .dot{
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px 2px var(--accent);
+.cp-logo{
+  width: 26px; height: 26px; color: var(--accent);
+  filter: drop-shadow(0 0 4px var(--accent));
 }
 .cp-tagline{ color: var(--text-dim); font-size: .78rem; font-family: var(--font-mono); }
 
@@ -171,7 +173,7 @@ h1, h2, h3, h4, h5, .font-display{
 }
 .pipeline-arrow.active{ color: var(--accent); }
 
-/* Navigasi antar halaman: angka mengikuti urutan pipeline (tokenisasi -> regex -> parsing -> normalisasi). */
+/* Navigasi antar halaman - angka bermakna urutan pipeline compiler. */
 .page-nav{ display: flex; flex-wrap: wrap; gap: .6rem; }
 .page-nav-link{
   display: flex; align-items: center; gap: .6rem;
@@ -199,12 +201,14 @@ h1, h2, h3, h4, h5, .font-display{
 
 /* tiap modul dapat warna sendiri waktu aktif, biar cepat kelihatan lagi di
    modul mana tanpa harus baca teksnya dulu */
+.page-nav-link.mod0.active{ border-color: var(--text-secondary); background: var(--bg-inset); }
 .page-nav-link.mod2.active{ border-color: var(--accent-3); background: var(--accent-3-soft); }
 .page-nav-link.mod2.active .num{ background: var(--accent-3); color: #1c0d3d; }
 .page-nav-link.mod3.active{ border-color: var(--accent-2); background: var(--accent-2-soft); }
 .page-nav-link.mod3.active .num{ background: var(--accent-2); color: #3a2400; }
 .page-nav-link.mod4.active{ border-color: var(--accent-4); background: var(--accent-4-soft); }
 .page-nav-link.mod4.active .num{ background: var(--accent-4); color: #04263f; }
+.page-nav-link.mod5.active{ border-color: var(--text-secondary); background: var(--bg-inset); }
 
 @keyframes fadeIn{ from{ opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
 main.page-content{ animation: fadeIn .25s ease; }
@@ -309,6 +313,26 @@ main.page-content{ animation: fadeIn .25s ease; }
 .result-banner.bad{ background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
 .result-banner .value{ margin-left: auto; color: var(--text-primary); }
 
+.hero-log{ display:flex; flex-direction:column; gap:.4rem; }
+.hero-log .step{
+  display:flex; gap:.6rem; align-items:flex-start;
+  font-size:.8rem; color:var(--text-secondary); line-height:1.4;
+}
+.hero-log .step .n{
+  flex:0 0 auto; width:18px; height:18px; border-radius:50%;
+  border:1px solid var(--border-strong); display:flex; align-items:center;
+  justify-content:center; font-size:.68rem; color:var(--text-dim);
+}
+.hero-log .step.ok .n{ border-color: var(--accent); color: var(--accent); }
+.hero-log .step.fail .n{ border-color: var(--danger); color: var(--danger); }
+
+.explain-box{
+  background: var(--bg-inset); border: 1px solid var(--border);
+  border-radius: 8px; padding: .6rem .9rem;
+  font-size: .82rem; color: var(--text-secondary);
+}
+.explain-box:empty{ display: none; }
+
 .error-box{
   background: var(--danger-soft); border: 1px solid var(--danger);
   color: #ffd7d9; border-radius: 8px; padding: .7rem 1rem; font-size: .88rem;
@@ -334,8 +358,11 @@ main.page-content{ animation: fadeIn .25s ease; }
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: auto;
+  max-width: 100%;
 }
-.automaton-view svg{ display:block; width:auto; height:auto; margin: 0 auto; }
+.automaton-view svg{ display:block; width:auto; height:auto; margin: 0; }
+.tree-center{ display: flex; }
+.tree-center svg{ margin: auto; }
 .fa-node-circle{ fill: var(--bg-elevated); stroke: var(--border-strong); stroke-width: 1.6; transition: all .25s ease;}
 .fa-node-ring-final{ stroke: var(--accent-2); stroke-width: 2.4; }
 .fa-node.active .fa-node-circle{ fill: var(--accent-soft); stroke: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
@@ -366,8 +393,8 @@ main.page-content{ animation: fadeIn .25s ease; }
 .stepper-status{ font-family: var(--font-mono); font-size: .82rem; color: var(--text-secondary); }
 
 /* Pohon penurunan - sekarang digambar SVG asli, bukan trik border CSS */
-.tree-view{ overflow-x: auto; padding: .8rem 0; background: var(--bg-inset); border-radius: 8px; }
-.tree-view svg{ display:block; width:auto; height:auto; margin: 0 auto; }
+.tree-view{ overflow-x: auto; padding: .8rem 0; background: var(--bg-inset); border-radius: 8px; max-width: 100%; }
+.tree-view svg{ display:block; width:auto; height:auto; margin: 0; }
 .tree-edge{ fill:none; stroke: var(--border-strong); stroke-width: 1.5; }
 .tree-node rect{ fill: var(--bg-elevated); stroke: var(--border-strong); stroke-width: 1.5; }
 .tree-node.leaf rect{ fill: var(--accent-2-soft); stroke: var(--accent-2); }
@@ -395,6 +422,7 @@ main.page-content{ animation: fadeIn .25s ease; }
   padding: .9rem 1.1rem; font-family: var(--font-mono); font-size: .85rem; line-height: 1.85;
   color: var(--text-primary); white-space: pre-wrap;
 }
+.grammar-block-scroll{ max-height: 320px; overflow-y: auto; word-break: break-word; }
 .grammar-step-title{
   font-family: var(--font-mono); font-size: .78rem; color: var(--accent);
   margin: 1.1rem 0 .4rem; display:flex; align-items:center; gap:.5rem;

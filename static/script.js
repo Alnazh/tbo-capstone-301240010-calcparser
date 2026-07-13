@@ -1,4 +1,4 @@
-/* CalcParser - script.js: panggil API Flask, gambar diagram/pohon/tabel.
+/* Otomatika - script.js: panggil API Flask, gambar diagram/pohon/tabel.
    Vanilla JS tanpa framework, biar gampang ditelusuri saat presentasi. */
 
 const $ = (id) => document.getElementById(id);
@@ -26,6 +26,20 @@ function errorBox(el, message) {
   el.innerHTML = `<div class="error-box">⚠ ${escapeHtml(message)}</div>`;
 }
 
+// innerHTML aman: kalau ID-nya tidak ada di halaman ini, diam saja, tidak melempar error.
+function setHTML(id, html) {
+  const el = $(id);
+  if (el) el.innerHTML = html;
+}
+
+// Satu elemen: nama state apa adanya (mis. DFA "{n0,n1}" itu SATU state, bukan banyak).
+// Lebih dari satu: berarti mesin NFA sungguhan sedang aktif di banyak state sekaligus.
+function formatStateSet(states) {
+  if (!states || states.length === 0) return "∅";
+  if (states.length === 1) return states[0];
+  return `{${states.join(", ")}}`;
+}
+
 // Menerjemahkan hasil simulasi FSA jadi kalimat "kenapa diterima/ditolak".
 function explainFsaTrace(trace, accepted, finalStates) {
   const last = trace[trace.length - 1];
@@ -33,11 +47,14 @@ function explainFsaTrace(trace, accepted, finalStates) {
     return `✕ Ditolak: mesin macet membaca simbol '${escapeHtml(last.symbol)}' pada langkah ke-${last.step}, ` +
       `karena dari kumpulan state sebelumnya tidak ada transisi untuk simbol itu.`;
   }
-  const setTxt = `{${finalStates.join(", ") || "∅"}}`;
+  const setTxt = formatStateSet(finalStates);
+  const isMultiple = finalStates.length > 1;
   if (accepted) {
-    return `✓ Diterima: setelah seluruh input dibaca, mesin berhenti di state ${setTxt}, dan salah satunya adalah state akhir (final).`;
+    return `✓ Diterima: setelah seluruh input dibaca, mesin berhenti di state ${setTxt}` +
+      (isMultiple ? `, dan salah satunya adalah state akhir (final).` : `, yang merupakan state akhir (final).`);
   }
-  return `✕ Ditolak: setelah seluruh input dibaca, mesin berhenti di state ${setTxt}, tidak satu pun state akhir (final).`;
+  return `✕ Ditolak: setelah seluruh input dibaca, mesin berhenti di state ${setTxt}` +
+    (isMultiple ? `, tidak satu pun state akhir (final).` : `, yang bukan state akhir (final).`);
 }
 
 // Menerjemahkan pola regex jadi kalimat berbahasa manusia, rekursif untuk grup dalam kurung.
@@ -137,7 +154,7 @@ function computeLayeredLayout(automaton) {
 
   const rankGap = Math.max(150, nodeR * 6.4);
   const nodeGap = nodeR * 2 + 58; // termasuk jatah ruang buat self-loop di atas node
-  const padX = 60, padY = 70;
+  const padX = 96, padY = 70;
 
   const width = padX * 2 + Math.max(0, ranks.length - 1) * rankGap + nodeR * 2;
   const height = padY * 2 + (maxPerRank - 1) * nodeGap + nodeR * 2;
@@ -263,12 +280,20 @@ function buildTransitionTableFallback(automaton) {
 }
 
 function automatonLegendHTML(automaton) {
+  const finals = automaton.finals || [];
+  const note = finals.length > 1
+    ? `<p class="text-dim small mt-2 mb-0">Himpunan state akhir F boleh berisi lebih dari satu state
+        (bagian dari definisi formal Q, Σ, δ, q0, F, bukan pengecualian). Mesin ini punya
+        ${finals.length} state akhir: ${finals.map(escapeHtml).join(", ")}. Sering muncul setelah
+        NFA→DFA, karena satu state DFA hasil subset construction final kalau ada satu saja
+        state NFA di dalamnya yang final.</p>`
+    : "";
   return `<div class="fa-legend">
     <span><span class="legend-swatch swatch-normal"></span>state biasa</span>
     <span><span class="legend-swatch swatch-final"></span>state akhir (final)</span>
     <span><span class="legend-swatch swatch-active"></span>state aktif saat simulasi</span>
     <span class="text-dim">mulai dari state <b>${escapeHtml(automaton.start)}</b>${automaton.type ? ` &middot; tipe: ${automaton.type}` : ""}</span>
-  </div>`;
+  </div>${note}`;
 }
 
 function renderAutomaton(container, automaton) {
@@ -277,6 +302,7 @@ function renderAutomaton(container, automaton) {
     return { highlightStates() {} };
   }
   container.innerHTML = buildAutomatonSVG(automaton, container.id) + automatonLegendHTML(automaton);
+  container.scrollLeft = 0;
   return {
     highlightStates(names) {
       container.querySelectorAll(".fa-node").forEach((g) => {
@@ -377,6 +403,7 @@ function buildTreeSVG(root) {
 function renderTree(container, root) {
   if (!root) { container.innerHTML = "<p class='text-dim small p-3'>Belum ada pohon untuk ditampilkan.</p>"; return; }
   container.innerHTML = buildTreeSVG(root);
+  container.scrollLeft = 0;
 }
 
 /* =========================================================================
@@ -562,9 +589,9 @@ async function runTokenizer() {
       $("tokStepStatus").textContent = "-";
     }
     const errs = data.tokens.filter((t) => t.type === "ERROR");
-    $("tokExplain").innerHTML = errs.length
+    setHTML("tokExplain", errs.length
       ? `⚠ ${errs.length} karakter tidak dikenali (${errs.map((t) => `'${escapeHtml(t.lexeme)}'`).join(", ")}): dari state saat itu tidak ada transisi DFA yang cocok.`
-      : `✓ Semua ${data.tokens.length} token dikenali. Tiap token berhenti tepat sebelum karakter berikutnya tidak lagi punya transisi valid dari state akhir yang sudah dicapai (maximal munch).`;
+      : `✓ Semua ${data.tokens.length} token dikenali. Tiap token berhenti tepat sebelum karakter berikutnya tidak lagi punya transisi valid dari state akhir yang sudah dicapai (maximal munch).`);
   } catch (e) {
     errorBox($("tokError"), e.message);
     $("tokResultWrap").style.display = "none";
@@ -585,8 +612,8 @@ async function runCustomFSA() {
     const view = renderAutomaton($("fsaAutomatonView"), data.automaton);
     $("fsaBanner").innerHTML = `<div class="result-banner ${data.accepted ? "ok" : "bad"}">
       ${data.accepted ? "✓ DITERIMA" : "✕ DITOLAK"} oleh mesin (${data.automaton.type})
-      <span class="value">state akhir: ${data.final_states.join(", ") || "∅"}</span></div>`;
-    $("fsaExplain").innerHTML = explainFsaTrace(data.trace, data.accepted, data.final_states);
+      <span class="value">state akhir: ${formatStateSet(data.final_states)}</span></div>`;
+    setHTML("fsaExplain", explainFsaTrace(data.trace, data.accepted, data.final_states));
     attachStepper(
       { prevBtn: $("fsaPrev"), nextBtn: $("fsaNext"), playBtn: $("fsaPlay"), statusEl: $("fsaStepStatus") },
       data.trace.length,
@@ -664,7 +691,7 @@ async function compileRegexHandler() {
     renderAutomaton($("reNfaView"), data.nfa);
     renderAutomaton($("reDfaView"), data.dfa);
     $("reGrammarBlock").textContent = data.grammar.join("\n");
-    $("reHumanExplain").innerHTML = `Pola <code>${escapeHtml(pattern)}</code> berarti: ${humanizeRegex(pattern)}.`;
+    setHTML("reHumanExplain", `Pola <code>${escapeHtml(pattern)}</code> berarti: ${humanizeRegex(pattern)}.`);
   } catch (e) {
     errorBox($("reError"), e.message);
     $("reResultWrap").style.display = "none";
@@ -676,8 +703,8 @@ async function testRegexHandler() {
     const data = await postJSON("/api/regex/test", { pattern, input: $("reTestInput").value });
     $("reTestBanner").innerHTML = `<div class="result-banner ${data.accepted ? "ok" : "bad"}">
       ${data.accepted ? "✓ COCOK dengan pola" : "✕ TIDAK COCOK"}
-      <span class="value">state akhir: ${data.final_states.join(", ") || "∅"}</span></div>`;
-    $("reTestExplain").innerHTML = explainFsaTrace(data.trace, data.accepted, data.final_states);
+      <span class="value">state akhir: ${formatStateSet(data.final_states)}</span></div>`;
+    setHTML("reTestExplain", explainFsaTrace(data.trace, data.accepted, data.final_states));
     $("reTestStepWrap").style.display = "block";
     const view = renderAutomaton($("reTestDfaView"), data.dfa);
     attachStepper(
@@ -705,8 +732,8 @@ async function runArithmeticParse() {
     arData = data;
     $("arResultWrap").style.display = "block";
     $("arValue").textContent = data.value !== null && data.value !== undefined ? `= ${data.value}` : "";
-    $("arExplain").innerHTML = `✓ Diterima: seluruh token habis terpakai membentuk satu pohon penurunan ` +
-      `dari simbol awal <code>E</code> tanpa sisa, mengikuti aturan grammar di atas.`;
+    setHTML("arExplain", `✓ Diterima: seluruh token habis terpakai membentuk satu pohon penurunan ` +
+      `dari simbol awal <code>E</code> tanpa sisa, mengikuti aturan grammar di atas.`);
     renderTree($("arTreeView"), data.tree);
     renderDerivations($("arDerivWrap"), arShowRight ? data.rightmost : data.leftmost);
     $("arDerivToggle").textContent = "tampilkan: " + (arShowRight ? "kiri" : "kanan");
@@ -738,11 +765,11 @@ async function runGenericCFG() {
     renderCykTable($("cfgbCykTable"), data.cyk_table, data.terminal_seq);
     $("cfgbBanner").innerHTML = `<div class="result-banner ${data.accepted ? "ok" : "bad"}">
       ${data.accepted ? "✓ STRING DITERIMA" : "✕ STRING DITOLAK"} oleh grammar</div>`;
-    $("cfgbExplain").innerHTML = data.accepted
+    setHTML("cfgbExplain", data.accepted
       ? `✓ Diterima: simbol awal grammar (dalam bentuk CNF) muncul di sel tabel CYK paling atas ` +
         `(l = panjang penuh, i = 0), artinya seluruh string bisa diturunkan dari simbol awal.`
       : `✕ Ditolak: simbol awal grammar tidak muncul di sel tabel CYK paling atas, artinya tidak ada ` +
-        `cara menurunkan seluruh string ini dari simbol awal memakai aturan produksi yang ada.`;
+        `cara menurunkan seluruh string ini dari simbol awal memakai aturan produksi yang ada.`);
     if (data.accepted) {
       $("cfgbTreeDerivWrap").style.display = "flex";
       $("cfgbPdaWrap").style.display = "block";
@@ -769,8 +796,8 @@ async function runCnfConversion() {
     renderGrammarSteps($("cnfStepsWrap"), data.steps);
     $("cnfFinalBlock").textContent = data.cnf_grammar.join("\n");
     if (data.gnf.success) {
-      $("gnfWrap").innerHTML = `<div class="result-banner ok">✓ Konversi GNF berhasil</div>
-        <div class="grammar-block">${escapeHtml(data.gnf.grammar.join("\n"))}</div>`;
+      $("gnfWrap").innerHTML = `<div class="result-banner ok">✓ ${escapeHtml(data.gnf.message)}</div>
+        <div class="grammar-block grammar-block-scroll">${escapeHtml(data.gnf.grammar.join("\n"))}</div>`;
     } else {
       $("gnfWrap").innerHTML = `<div class="result-banner bad">✕ ${escapeHtml(data.gnf.message)}</div>`;
     }
@@ -788,9 +815,18 @@ async function runHeroPipeline() {
   document.querySelectorAll(".pipeline-schematic .stage, .pipeline-arrow").forEach((el) => el.classList.remove("active", "fail"));
   $("heroMessage").textContent = "Memproses…";
   $("heroTokenStream").innerHTML = "";
+  $("heroDetail").style.display = "block";
+  $("heroLog").innerHTML = "";
+  $("heroTreeView").style.display = "none";
+  const log = [];
+  function pushStep(ok, text) {
+    log.push(`<div class="step ${ok ? "ok" : "fail"}"><span class="n">${ok ? "✓" : "✕"}</span><span>${text}</span></div>`);
+    $("heroLog").innerHTML = log.join("");
+  }
   await sleep(150);
   document.querySelector('.stage[data-stage="input"]').classList.add("active");
   document.querySelectorAll(".pipeline-arrow")[0].classList.add("active");
+  pushStep(true, `Membaca input mentah: <code>${escapeHtml(expr || "(kosong)")}</code>, belum ada makna, cuma teks.`);
   try {
     const data = await postJSON("/api/pipeline/run", { expression: expr });
     await sleep(300);
@@ -799,24 +835,32 @@ async function runHeroPipeline() {
       `<span class="token-chip ${t.type === "ERROR" ? "err" : ""}">${escapeHtml(t.lexeme)}<small>${t.type}</small></span>`
     ).join("");
     if (!data.lexer_ok) {
+      pushStep(false, `Tokenizer (DFA) macet: ${escapeHtml(data.message || "token tidak dikenali.")}`);
       $("heroMessage").textContent = "✕ " + (data.message || "Token tidak dikenali.");
       $("pl-result").textContent = "gagal";
       return;
     }
+    pushStep(true, `Tokenizer (DFA, Modul 01) memecah jadi ${data.token_count} token lewat maximal munch, ditunjukkan di atas.`);
     document.querySelectorAll(".pipeline-arrow")[1].classList.add("active");
     await sleep(300);
     document.querySelector('.stage[data-stage="parser"]').classList.add(data.parser_ok ? "active" : "fail");
     if (!data.parser_ok) {
+      pushStep(false, `Parser (PDA, Modul 03) menolak: ${escapeHtml(data.message || "struktur ekspresi tidak valid.")}`);
       $("heroMessage").textContent = "✕ " + (data.message || "Struktur ekspresi tidak valid.");
       $("pl-result").textContent = "gagal";
       return;
     }
+    pushStep(true, `Parser (Modul 03) menyusun token jadi satu pohon penurunan grammar E/T/F, lihat di bawah.`);
+    $("heroTreeView").style.display = "block";
+    renderTree($("heroTreeView"), data.tree);
     document.querySelectorAll(".pipeline-arrow")[2].classList.add("active");
     await sleep(250);
     document.querySelector('.stage[data-stage="result"]').classList.add("active");
     $("pl-result").textContent = data.value;
+    pushStep(true, `Pohon dihitung dari daun ke akar (precedence otomatis dari struktur pohon) → hasil = ${data.value}.`);
     $("heroMessage").textContent = `Diproses melalui ${data.token_count} token → hasil = ${data.value}`;
   } catch (e) {
+    pushStep(false, escapeHtml(e.message));
     $("heroMessage").textContent = "⚠ " + e.message;
   }
 }
