@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CalcParser - Parser & PDA{% endblock %}
+{% block title %}Otomatika - Parser & PDA{% endblock %}
 {% block content %}
 <main class="container py-5 page-content">
 
@@ -47,6 +47,7 @@ F → ( E ) | id</div>
 
     <div id="arResultWrap" style="display:none">
       <div class="result-banner ok" id="arBanner">Diterima oleh grammar <span class="value" id="arValue"></span></div>
+      <div id="arExplain" class="explain-box mb-3"></div>
       <div class="row g-4">
         <div class="col-lg-6">
           <div class="cp-card h-100">
@@ -113,6 +114,7 @@ F → ( E ) | id</div>
           <button class="btn-cp w-100" id="cfgbRunBtn">Uji Keanggotaan ▸</button>
           <div id="cfgbError" class="mt-3"></div>
           <div id="cfgbBanner" class="mt-3"></div>
+          <div id="cfgbExplain" class="explain-box mt-2"></div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CalcParser - Regular Expression{% endblock %}
+{% block title %}Otomatika - Regular Expression{% endblock %}
 {% block content %}
 <main class="container py-5 page-content">
 
@@ -25,18 +25,21 @@
       Contoh pola untuk token NUMBER pada tokenizer Modul 1: <code>[0-9]+(\.[0-9]+)?</code>
     </p>
     <div class="mb-2">
-      <span class="preset-chip" data-preset="re1">[0-9]+(\.[0-9]+)?</span>
+      <span class="preset-chip" data-preset="re0">ab*</span>
+      <span class="preset-chip" data-preset="re1">[0-9]+(\.[0-9]+)? &middot; token NUMBER</span>
       <span class="preset-chip" data-preset="re2">(a|b)*abb</span>
       <span class="preset-chip" data-preset="re3">\d\d?:\d\d</span>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-      <input id="reInput" class="cp-input flex-grow-1" style="min-width:220px" value="[0-9]+(\.[0-9]+)?">
+      <input id="reInput" class="cp-input flex-grow-1" style="min-width:220px" value="ab*">
       <button class="btn-cp" id="reCompileBtn">Compile ▸</button>
     </div>
     <div id="reError" class="mt-3"></div>
   </div>
 
   <div id="reResultWrap" style="display:none">
+    <label class="cp-label">Arti Pola Ini dalam Bahasa Manusia</label>
+    <div id="reHumanExplain" class="explain-box mb-3"></div>
     <div class="hint-box">NFA di kiri adalah hasil langsung dari Thompson Construction, satu simpul untuk
       tiap operator dalam pola (makanya jumlah state-nya cenderung banyak dan transisi-nya banyak memakai
       &epsilon;, yaitu transisi tanpa membaca karakter). DFA di kanan adalah bentuk yang sudah disederhanakan
@@ -66,10 +69,11 @@
     <div class="cp-card">
       <div class="cp-card-title">Uji Pencocokan String</div>
       <div class="d-flex gap-2 flex-wrap mb-2">
-        <input id="reTestInput" class="cp-input flex-grow-1" style="min-width:200px" value="12.5">
+        <input id="reTestInput" class="cp-input flex-grow-1" style="min-width:200px" value="abbb">
         <button class="btn-cp" id="reTestBtn">Uji ▸</button>
       </div>
       <div id="reTestBanner"></div>
+      <div id="reTestExplain" class="explain-box mt-2"></div>
       <div id="reTestStepWrap" style="display:none" class="mt-3">
         <div class="automaton-view mb-3" id="reTestDfaView"></div>
         <div class="stepper-bar">
